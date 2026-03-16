@@ -33,7 +33,7 @@ def _load_sp_cert() -> str:
 
 _IDP_METADATA_SETTINGS = _load_idp_settings_from_metadata()
 
-SAML_CONFIG = {
+SOURCE_SAML_CONFIG = {
     "strict": True,
     "debug": True,
     "sp": {
