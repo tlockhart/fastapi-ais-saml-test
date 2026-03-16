@@ -14,7 +14,7 @@ def _load_idp_settings_from_metadata() -> dict:
     validate_cert_env = os.environ.get("SAML_IDP_METADATA_VALIDATE_CERT", "true").lower()
     validate_cert = validate_cert_env not in ("0", "false", "no")
     try:
-        metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(metadata_url, validate_cert)
+        metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(metadata_url, validate_cert, timeout=5)
         return metadata.get("idp", {}) if isinstance(metadata, dict) else {}
     except Exception as exc:  # pragma: no cover - best-effort metadata fetch
         logger.warning("Failed to parse IdP metadata from %s: %s", metadata_url, exc)
