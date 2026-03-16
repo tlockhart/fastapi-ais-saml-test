@@ -133,7 +133,7 @@ async def saml_acs(request: Request):
     print("Error when processing SAML Response: %s %s" % (', '.join(errors), auth.get_last_error_reason()))
     return "Error in callback"
   
-@app.get('api/saml/metadata')
+@app.get('/api/saml/metadata')
 async def saml_metadata():
   raw_settings = get_saml_settings_dict()
   saml_settings = OneLogin_Saml2_Settings(raw_settings)
@@ -144,7 +144,7 @@ async def saml_metadata():
   else:
     return "Error found on Metadata: %s" % (', '.join(errors))
   
-@app.get('api/saml/ls')
+@app.get('/api/saml/ls')
 async def saml_logout(request: Request):
   try:
     response = RedirectResponse(url="/", status_code=302) 
