@@ -8,6 +8,7 @@ from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from onelogin.saml2.utils import OneLogin_Saml2_Utils
 from saml import settings as saml_settings_source
+from saml import advanced_settings as saml_advanced_settings
 
 app = FastAPI()
 
@@ -32,10 +33,20 @@ app = FastAPI()
 #   }
 # }
 
+def _deep_merge(target: dict, overrides: dict) -> None:
+  for key, value in overrides.items():
+    if isinstance(value, dict) and isinstance(target.get(key), dict):
+      _deep_merge(target[key], value)
+    else:
+      target[key] = value
+
 def get_saml_settings_dict():
-  source_settings = getattr(saml_settings_source, "SAML_CONFIG", None)
-  source = source_settings 
-  return deepcopy(source)
+  source_settings = getattr(saml_settings_source, "SOURCE_SAML_CONFIG", {})
+  result = deepcopy(source_settings)
+  advanced_settings = getattr(saml_advanced_settings, "ADVANCED_SAML_CONFIG", None)
+  if isinstance(advanced_settings, dict):
+    _deep_merge(result, advanced_settings)
+  return result
 
 async def prepare_from_fastapi_request(request, debug=False):
   form_data = await request.form()
