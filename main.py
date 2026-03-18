@@ -26,7 +26,7 @@ async def test(request: Request, p1: Optional[str] = Form(None), p2: Optional[st
 @app.get('/api/saml/login')
 async def saml_login(request: Request):
   saml_req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
-    saml_settings = get_configs()
+  saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(saml_req.dict(), saml_settings)
   # saml_settings = auth.get_settings()
   # metadata = saml_settings.get_sp_metadata()
@@ -42,7 +42,7 @@ async def saml_login(request: Request):
 @app.post('/api/saml/callback')
 async def saml_login_callback(request: Request):
   req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
-    saml_settings = get_configs()
+  saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(req, saml_settings)
   auth.process_response() # Process IdP response
   errors = auth.get_errors() # This method receives an array with the errors
