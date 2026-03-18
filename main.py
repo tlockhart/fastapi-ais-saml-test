@@ -16,15 +16,18 @@ DEBUG = True
 
 @app.get("/")
 async def root():
+  """Return a simple heartbeat message for the root path."""
   return { "message": "Hello World" }
 
 @app.post("/test")
 async def test(request: Request, p1: Optional[str] = Form(None), p2: Optional[str] = Form(None)):
+  """Echo the converted FastAPI request so tooling can inspect prepared SAML data."""
   req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
   return req
 
 @app.get('/api/saml/login')
 async def saml_login(request: Request):
+  """Build an AuthNRequest, ask the IdP for authentication, and redirect the browser."""
   saml_req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
   saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(saml_req.dict(), saml_settings)
@@ -41,27 +44,13 @@ async def saml_login(request: Request):
   response = RedirectResponse(url=callback_url)
   return response
 
-@app.post('/api/saml/callback')
-async def saml_login_callback(request: Request):
-  req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
-  saml_settings = get_configs()
-  auth = OneLogin_Saml2_Auth(req, saml_settings)
-  auth.process_response() # Process IdP response
-  errors = auth.get_errors() # This method receives an array with the errors
-  if len(errors) == 0:
-    if not auth.is_authenticated(): # This check if the response was ok and the user data retrieved or not (user authenticated)
-      return "user Not authenticated"
-    else:
-      return "User authenticated"
-  else:
-    print("Error when processing SAML Response: %s %s" % (', '.join(errors), auth.get_last_error_reason()))
-    return "Error in callback"
   
 """
 Added: Additional Routes
 """
 @app.post('/api/saml/acs')
 async def saml_acs(request: Request):
+  """Alternate assertion consumer endpoint that mirrors /callback for compatibility."""
   req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
   saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(req, saml_settings)
@@ -78,6 +67,7 @@ async def saml_acs(request: Request):
   
 @app.get('/api/saml/metadata')
 async def saml_metadata():
+  """Serve the SP metadata document so IdPs can fetch the SP’s configuration."""
   raw_settings = get_configs()
   saml_settings = OneLogin_Saml2_Settings(raw_settings)
   metadata = saml_settings.get_sp_metadata()
@@ -89,6 +79,7 @@ async def saml_metadata():
   
 @app.get('/api/saml/ls')
 async def saml_logout(request: Request):
+  """Clear any session/cookie state and redirect the user back to the root."""
   try:
     response = RedirectResponse(url="/", status_code=302) 
     response.delete_cookie(key="HM_JWT", path="/")
