@@ -1,4 +1,3 @@
-
 import logging
 
 from fastapi import FastAPI, Request, Form, HTTPException
@@ -8,7 +7,7 @@ from starlette.responses import RedirectResponse, Response
 # Load python3-saml onelogin toolkit
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from utils.auth import build_authenticated_redirect_response, resolve_saml_subject
+from utils.saml.auth import build_authenticated_redirect_response, resolve_saml_subject
 from utils.saml.sso.fastapi_converters import prepare_fastapi_request_for_onelogin
 from utils.saml.settings import get_configs
 
