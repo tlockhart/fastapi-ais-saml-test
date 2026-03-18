@@ -6,7 +6,7 @@ from saml import advanced_settings as saml_advanced_settings
 from utils.dict_utils import _deep_merge
 
 
-def get_saml_configs() -> dict:
+def get_configs() -> dict:
     """
     Load base SAML settings and apply any advanced overrides.
     """
