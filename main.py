@@ -41,9 +41,9 @@ def _deep_merge(target: dict, overrides: dict) -> None:
       target[key] = value
 
 def get_saml_settings_dict():
-  source_settings = getattr(saml_settings_source, "SOURCE_SAML_CONFIG", {})
+  source_settings = getattr(saml_settings_source, "SOURCE_CONFIG", {})
   result = deepcopy(source_settings)
-  advanced_settings = getattr(saml_advanced_settings, "ADVANCED_SAML_CONFIG", None)
+  advanced_settings = getattr(saml_advanced_settings, "ADVANCED_CONFIG", None)
   if isinstance(advanced_settings, dict):
     _deep_merge(result, advanced_settings)
   return result
@@ -133,7 +133,7 @@ async def saml_acs(request: Request):
     print("Error when processing SAML Response: %s %s" % (', '.join(errors), auth.get_last_error_reason()))
     return "Error in callback"
   
-@app.get('/api/saml/metadata')
+@app.get('api/saml/metadata')
 async def saml_metadata():
   raw_settings = get_saml_settings_dict()
   saml_settings = OneLogin_Saml2_Settings(raw_settings)
@@ -144,7 +144,7 @@ async def saml_metadata():
   else:
     return "Error found on Metadata: %s" % (', '.join(errors))
   
-@app.get('/api/saml/ls')
+@app.get('api/saml/ls')
 async def saml_logout(request: Request):
   try:
     response = RedirectResponse(url="/", status_code=302) 
