@@ -1,4 +1,6 @@
 
+import logging
+
 from fastapi import FastAPI, Request, Form, HTTPException
 from typing import Optional
 from starlette.responses import RedirectResponse, Response
@@ -6,10 +8,12 @@ from starlette.responses import RedirectResponse, Response
 # Load python3-saml onelogin toolkit
 from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from onelogin.saml2.utils import OneLogin_Saml2_Utils
+from utils.auth import build_authenticated_redirect_response, resolve_saml_subject
 from utils.saml.sso.fastapi_converters import prepare_fastapi_request_for_onelogin
 from utils.saml.settings import get_configs
 
+# Logger used by the assertion consumer handler
+logger = logging.getLogger(__name__)
 app = FastAPI()
 # Enable Debug True for simple logging
 DEBUG = True
@@ -31,13 +35,6 @@ async def saml_login(request: Request):
   saml_req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
   saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(saml_req.dict(), saml_settings)
-  # saml_settings = auth.get_settings()
-  # metadata = saml_settings.get_sp_metadata()
-  # errors = saml_settings.validate_metadata(metadata)
-  # if len(errors) == 0:
-  #   print(metadata)
-  # else:
-  #   print("Error found on Metadata: %s" % (', '.join(errors)))
 
   # Create AuthnRequest and route to the IdP, via Redirect
   callback_url = auth.login()
@@ -45,26 +42,25 @@ async def saml_login(request: Request):
   return response
 
   
-"""
-Added: Additional Routes
-"""
 @app.post('/api/saml/acs')
 async def saml_acs(request: Request):
-  """Alternate assertion consumer endpoint that mirrors /callback for compatibility."""
+  """Assertion consumer endpoint that processes IdP responses and issues HM_JWT."""
   req = await prepare_fastapi_request_for_onelogin(request, DEBUG)
   saml_settings = get_configs()
   auth = OneLogin_Saml2_Auth(req, saml_settings)
-  auth.process_response() # Process IdP response
-  errors = auth.get_errors() # This method receives an array with the errors
-  if len(errors) == 0:
-    if not auth.is_authenticated(): # This check if the response was ok and the user data retrieved or not (user authenticated)
-      return "user Not authenticated"
-    else:
-      return "User authenticated"
-  else:
-    print("Error when processing SAML Response: %s %s" % (', '.join(errors), auth.get_last_error_reason()))
+  auth.process_response()
+  errors = auth.get_errors()
+  if errors:
+    logger.error("Error when processing SAML Response: %s %s", ", ".join(errors), auth.get_last_error_reason())
     return "Error in callback"
-  
+
+  if not auth.is_authenticated():
+    logger.warning("Unauthenticated SAML response")
+    raise HTTPException(status_code=401, detail="SAML response did not authenticate the user")
+
+  username = resolve_saml_subject(auth)
+  return build_authenticated_redirect_response(username)
+
 @app.get('/api/saml/metadata')
 async def saml_metadata():
   """Serve the SP metadata document so IdPs can fetch the SP’s configuration."""
