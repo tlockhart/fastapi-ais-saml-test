@@ -1,4 +1,4 @@
-ADVANCED_SAML_CONFIG={
+ADVANCED_CONFIG={
     "security": {
         "nameIdEncrypted": False,
         "authnRequestsSigned": False,
