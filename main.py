@@ -35,6 +35,8 @@ async def saml_login(request: Request):
   #   print(metadata)
   # else:
   #   print("Error found on Metadata: %s" % (', '.join(errors)))
+
+  # Create AuthnRequest and route to the IdP, via Redirect
   callback_url = auth.login()
   response = RedirectResponse(url=callback_url)
   return response
