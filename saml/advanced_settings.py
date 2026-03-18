@@ -13,7 +13,8 @@ ADVANCED_CONFIG={
         "allowSingleLabelDomains": False,
         "signatureAlgorithm": "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
         "digestAlgorithm": "http://www.w3.org/2001/04/xmlenc#sha256",
-        "rejectDeprecatedAlgorithm": True
+        "rejectDeprecatedAlgorithm": True,
+        "validate_signature_from_qs": False,
     },
     "contactPerson": {
         "technical": {
