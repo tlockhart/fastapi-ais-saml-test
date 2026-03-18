@@ -31,5 +31,6 @@ ADVANCED_CONFIG={
             "displayname": "SP test",
             "url": "http://sp.example.com"
         }
-    }
+    },
+    "lowercase_urlencoding": True
 }
