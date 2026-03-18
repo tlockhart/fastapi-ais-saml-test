@@ -27,6 +27,8 @@ def resolve_saml_subject(
 ) -> str:
     """Return the NameID or first-supported attribute claimed in the SAML assertion."""
 
+    print(f"Auth:FirstName from SP:{auth.get_attribute('cn')}")
+    
     nameid = auth.get_nameid()
     if nameid:
         return nameid
