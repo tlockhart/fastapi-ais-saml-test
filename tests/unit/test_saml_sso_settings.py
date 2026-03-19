@@ -1,14 +1,13 @@
-import copy
-
 import pytest
 
 from utils.saml.sso.settings import get_configs
-import utils.saml.sso.settings as sso_settings
+import saml.settings as saml_settings_source
+import saml.advanced_settings as saml_advanced_settings
 
 
 def teardown_function(function):
-    # Clean up any attributes we set on saml_settings_source or saml_advanced_settings
-    for module in (sso_settings.saml_settings_source, sso_settings.saml_advanced_settings):
+    # Clean up any attributes we set on SOURCE_CONFIG or ADVANCED_CONFIG
+    for module in (saml_settings_source, saml_advanced_settings):
         if hasattr(module, "SOURCE_CONFIG"):
             delattr(module, "SOURCE_CONFIG")
         if hasattr(module, "ADVANCED_CONFIG"):
@@ -23,7 +22,7 @@ def test_get_configs_no_base_or_advanced():
 
 def test_get_configs_base_only(monkeypatch):
     base = {"key": 1}
-    monkeypatch.setattr(sso_settings.saml_settings_source, "SOURCE_CONFIG", base, raising=False)
+    monkeypatch.setattr(saml_settings_source, "SOURCE_CONFIG", base, raising=False)
     # ADVANCED_CONFIG unset
     result = get_configs()
     assert result == base
@@ -34,8 +33,8 @@ def test_get_configs_base_only(monkeypatch):
 def test_get_configs_with_advanced_merge(monkeypatch):
     base = {"a": 1, "nested": {"x": 1}}
     advanced = {"nested": {"y": 2}, "new": 3}
-    monkeypatch.setattr(sso_settings.saml_settings_source, "SOURCE_CONFIG", base, raising=False)
-    monkeypatch.setattr(sso_settings.saml_advanced_settings, "ADVANCED_CONFIG", advanced, raising=False)
+    monkeypatch.setattr(saml_settings_source, "SOURCE_CONFIG", base, raising=False)
+    monkeypatch.setattr(saml_advanced_settings, "ADVANCED_CONFIG", advanced, raising=False)
 
     result = get_configs()
     # Original base remains unchanged
@@ -46,7 +45,7 @@ def test_get_configs_with_advanced_merge(monkeypatch):
 
 def test_get_configs_advanced_not_dict(monkeypatch):
     base = {"foo": "bar"}
-    monkeypatch.setattr(sso_settings.saml_settings_source, "SOURCE_CONFIG", base, raising=False)
-    monkeypatch.setattr(sso_settings.saml_advanced_settings, "ADVANCED_CONFIG", ["not", "dict"], raising=False)
+    monkeypatch.setattr(saml_settings_source, "SOURCE_CONFIG", base, raising=False)
+    monkeypatch.setattr(saml_advanced_settings, "ADVANCED_CONFIG", ["not", "dict"], raising=False)
     result = get_configs()
     assert result == base
