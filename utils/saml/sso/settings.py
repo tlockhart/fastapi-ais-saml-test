@@ -1,64 +1,55 @@
 import logging
 import os
 
-from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
+from dependencies.vault_saml import get_saml_config
+from utils.saml.sso.settings import _load_idp_settings_from_metadata, _load_sp_cert
 
-from copy import deepcopy
-from saml import settings as saml_settings_source
-from saml import advanced_settings as saml_advanced_settings
+sp_domain = os.environ.get("SP_DOMAIN", "localhost:8088")
 
-from utils.dict_utils import _deep_merge
 logger = logging.getLogger(__name__)
 
-def _load_idp_settings_from_metadata() -> dict:
-    """
-    Parse remote IdP metadata and extract its settings.
-    Returns an empty dict if SAML_IDP_METADATA_URL is not set or fetch fails.
-    """
-    metadata_url = os.environ.get("SAML_IDP_METADATA_URL")
-    if not metadata_url:
-        return {}
-    validate_cert_env = os.environ.get("SAML_IDP_METADATA_VALIDATE_CERT", "true").lower()
-    validate_cert = validate_cert_env not in ("0", "false", "no")
+# Try fetching SAML certs from Vault at import time
 
-    try:
-        metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(
-            metadata_url, validate_cert, timeout=5
-        )
-        return metadata.get("idp", {}) if isinstance(metadata, dict) else {}
-    except Exception as exc:  # pragma: no cover
-        logger.warning("Failed to parse IdP metadata from %s: %s", metadata_url, exc)
-        return {}
 
-def _load_sp_cert(vault_config: dict) -> str:
-    """
-    Load the SP public certificate from disk or fall back to Vault-provided PEM.
+_IDP_METADATA_SETTINGS = _load_idp_settings_from_metadata()
 
-    Args:
-        vault_config: dict with optional 'cert_file' containing PEM text.
-
-    Returns:
-        The certificate PEM string (trimmed) or empty string if not found.
-    """
-    cert_path = os.environ.get("SAML_SP_CERT_PATH", "saml/certs/public.pem")
-    try:
-        with open(cert_path, "r", encoding="utf-8") as pem:
-            return pem.read().strip()
-    except FileNotFoundError:
-        logger.warning("SP cert not found at %s", cert_path)
-        # Fallback to in-memory Vault cert
-        cert_mem = vault_config.get("cert_file")
-        if isinstance(cert_mem, str) and "-----BEGIN" in cert_mem:
-            return cert_mem.strip()
-        return ""
-
-def get_configs() -> dict:
-    """
-    Load base SAML settings and apply any advanced overrides.
-    """
-    source_settings = getattr(saml_settings_source, "SOURCE_CONFIG", {})
-    result = deepcopy(source_settings)
-    advanced_settings = getattr(saml_advanced_settings, "ADVANCED_CONFIG", None)
-    if isinstance(advanced_settings, dict):
-        _deep_merge(result, advanced_settings)
-    return result
+SOURCE_CONFIG = {
+    "strict": True,
+    "debug": True,
+    "sp": {
+        "entityId": f"https://{sp_domain}/metadata/",
+        "assertionConsumerService": {
+            "url": f"https://{sp_domain}/?acs",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+        },
+        "singleLogoutService": {
+            "url": f"https://{sp_domain}/?sls",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+        },
+        "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        "x509cert": _load_sp_cert(vault_saml),
+        "privateKey": vault_saml.get("key_file", "").strip(),
+    },
+    "idp": _IDP_METADATA_SETTINGS
+    or {
+        "entityId": os.environ.get(
+            "SAML_IDP_ENTITY_ID",
+            "https://app.onelogin.com/saml/metadata/<onelogin_connector_id>",
+        ),
+        "singleSignOnService": {
+            "url": os.environ.get(
+                "SAML_IDP_SSO_URL",
+                "https://app.onelogin.com/trust/saml2/http-post/sso/<onelogin_connector_id>",
+            ),
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+        },
+        "singleLogoutService": {
+            "url": os.environ.get(
+                "SAML_IDP_SLO_URL",
+                "https://app.onelogin.com/trust/saml2/http-redirect/slo/<onelogin_connector_id>",
+            ),
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+        },
+        "x509cert": os.environ.get("SAML_IDP_CERT", "<onelogin_connector_cert>"),
+    },
+}
