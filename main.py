@@ -9,7 +9,7 @@ from onelogin.saml2.auth import OneLogin_Saml2_Auth
 from onelogin.saml2.settings import OneLogin_Saml2_Settings
 from utils.saml.auth import build_authenticated_redirect_response, resolve_saml_subject
 from utils.saml.sso.fastapi_converters import prepare_fastapi_request_for_onelogin
-from utils.saml.settings import get_configs
+from utils.saml.sso.settings import get_configs
 
 # Logger used by the assertion consumer handler
 logger = logging.getLogger(__name__)
